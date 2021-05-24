@@ -58,6 +58,10 @@ typedef enum
 } State;
 State CurrentState = Menu_Main;
 
+uint32_t TimeStamp = 0;
+uint8_t LED_Frequency = 1;	//default 1Hz
+uint8_t LED_State = 1;		//default state On
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -140,7 +144,7 @@ int main(void)
 //			HAL_UART_Transmit(&huart2, (uint8_t*)TxDataBuffer, strlen(TxDataBuffer), 1000);
 
 			switch (CurrentState) {
-				case Menu_Main:
+				case Menu_Main:							//Main Menu
 
 					if (inputchar=='0') {
 						char temp[] =
@@ -167,9 +171,71 @@ int main(void)
 					}
 
 					break;
-				case Menu_Mode0:
+				case Menu_Mode0:						//Mode0 LED Control
 
-					if (inputchar=='x') {
+					if (inputchar=='a') {							//Speed Up
+						LED_Frequency += 1;
+
+						char temp[128];
+						sprintf(temp,
+							"====================\r\n"
+							"Speed Up +1Hz => %d Hz\r\n"
+							"====================\r\n"
+							"[a] Speed Up +1Hz\r\n"
+							"[s] Speed Down -1Hz\r\n"
+							"[d] On/off\r\n"
+							"[x] back\r\n",
+							LED_Frequency);
+
+						HAL_UART_Transmit(&huart2, (uint8_t*)temp, strlen(temp), 1000);
+					}
+					else if (inputchar=='s' && LED_Frequency!=0) {	//Speed Down
+						LED_Frequency -= 1;
+
+						char temp[128];
+						sprintf(temp,
+							"====================\r\n"
+							"Speed Down -1Hz => %d Hz\r\n"
+							"====================\r\n"
+							"[a] Speed Up +1Hz\r\n"
+							"[s] Speed Down -1Hz\r\n"
+							"[d] On/off\r\n"
+							"[x] back\r\n",
+							LED_Frequency);
+
+						HAL_UART_Transmit(&huart2, (uint8_t*)temp, strlen(temp), 1000);
+					}
+					else if (inputchar=='d') {	//On/Off
+
+						if (LED_State==1) {			//On=>Off
+							char temp[] =
+								"====================\r\n"
+								"Turn Off LED\r\n"
+								"====================\r\n"
+								"[a] Speed Up +1Hz\r\n"
+								"[s] Speed Down -1Hz\r\n"
+								"[d] On/off\r\n"
+								"[x] back\r\n";
+							HAL_UART_Transmit(&huart2, (uint8_t*)temp, strlen(temp), 1000);
+						}
+						else if (LED_State==0) {	//Off=>On
+							char temp[128];
+							sprintf(temp,
+								"====================\r\n"
+								"Turn On LED => %d Hz\r\n"
+								"====================\r\n"
+								"[a] Speed Up +1Hz\r\n"
+								"[s] Speed Down -1Hz\r\n"
+								"[d] On/off\r\n"
+								"[x] back\r\n",
+								LED_Frequency);
+							HAL_UART_Transmit(&huart2, (uint8_t*)temp, strlen(temp), 1000);
+						}
+
+						LED_State = !LED_State;
+						HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, LED_State);
+					}
+					else if (inputchar=='x') {						//Exit
 						char temp[] =
 							"====================\r\n"
 							"MAIN MENU\r\n"
@@ -182,7 +248,7 @@ int main(void)
 					}
 
 					break;
-				case Menu_Mode1:
+				case Menu_Mode1:						//Mode1 Button Status
 
 					if (inputchar=='x') {
 						char temp[] =
@@ -202,9 +268,12 @@ int main(void)
 			}
 		}
 
-		/*This section just simmulate Work Load*/
-		HAL_Delay(100);
-		HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
+		if (LED_State && LED_Frequency!=0 && HAL_GetTick()-TimeStamp >= 500/LED_Frequency)
+		{
+			TimeStamp = HAL_GetTick();
+
+			HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
+		}
 
     /* USER CODE END WHILE */
 
