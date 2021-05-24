@@ -62,6 +62,8 @@ uint32_t TimeStamp = 0;
 uint8_t LED_Frequency = 1;	//default 1Hz
 uint8_t LED_State = 1;		//default state On
 
+uint8_t ButtonState[2] = {0};
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -110,12 +112,13 @@ int main(void)
   /* USER CODE BEGIN 2 */
   {
 
-	  char temp[] = "HELLO USER :)\r\n"
+	  char temp[] = "\r\nHELLO USER :)\r\n"
 			"====================\r\n"
 	  		"MAIN MENU\r\n"
 	  		"====================\r\n"
 	  		"[0] LED Control\r\n"
-	  		"[1] Button Status\r\n";
+	  		"[1] Button Status\r\n"
+			"\r\n";
 	  //array size = text length
 
 	  HAL_UART_Transmit(&huart2, (uint8_t*)temp, strlen(temp), 1000);
@@ -137,8 +140,12 @@ int main(void)
 
 		/*Method 2 W/ 1 Char Received*/
 
+		//read Character
 		int16_t inputchar = UARTRecieveIT();
-		if(inputchar!=-1)
+		//read User Button
+		ButtonState[0] = HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13);
+
+		if (inputchar!=-1 || ButtonState[0]!=ButtonState[1])
 		{
 //			sprintf(TxDataBuffer, "Received:[%c]\r\n", inputchar);
 //			HAL_UART_Transmit(&huart2, (uint8_t*)TxDataBuffer, strlen(TxDataBuffer), 1000);
@@ -154,7 +161,8 @@ int main(void)
 							"[a] Speed Up +1Hz\r\n"
 							"[s] Speed Down -1Hz\r\n"
 							"[d] On/off\r\n"
-							"[x] back\r\n";
+							"[x] back\r\n"
+							"\r\n";
 
 						HAL_UART_Transmit(&huart2, (uint8_t*)temp, strlen(temp), 1000);
 						CurrentState = Menu_Mode0;
@@ -164,10 +172,16 @@ int main(void)
 							"====================\r\n"
 							"MODE1 Button Status\r\n"
 							"====================\r\n"
-							"[x] back\r\n";
+							"[x] back\r\n"
+							"\r\n";
 
 						HAL_UART_Transmit(&huart2, (uint8_t*)temp, strlen(temp), 1000);
 						CurrentState = Menu_Mode1;
+					}
+					else if (ButtonState[0]==ButtonState[1]) {
+						char temp[] =
+							"> Error: Wrong button\r\n";
+						HAL_UART_Transmit(&huart2, (uint8_t*)temp, strlen(temp), 1000);
 					}
 
 					break;
@@ -184,7 +198,8 @@ int main(void)
 							"[a] Speed Up +1Hz\r\n"
 							"[s] Speed Down -1Hz\r\n"
 							"[d] On/off\r\n"
-							"[x] back\r\n",
+							"[x] back\r\n"
+							"\r\n",
 							LED_Frequency);
 
 						HAL_UART_Transmit(&huart2, (uint8_t*)temp, strlen(temp), 1000);
@@ -200,7 +215,8 @@ int main(void)
 							"[a] Speed Up +1Hz\r\n"
 							"[s] Speed Down -1Hz\r\n"
 							"[d] On/off\r\n"
-							"[x] back\r\n",
+							"[x] back\r\n"
+							"\r\n",
 							LED_Frequency);
 
 						HAL_UART_Transmit(&huart2, (uint8_t*)temp, strlen(temp), 1000);
@@ -215,7 +231,8 @@ int main(void)
 								"[a] Speed Up +1Hz\r\n"
 								"[s] Speed Down -1Hz\r\n"
 								"[d] On/off\r\n"
-								"[x] back\r\n";
+								"[x] back\r\n"
+								"\r\n";
 							HAL_UART_Transmit(&huart2, (uint8_t*)temp, strlen(temp), 1000);
 						}
 						else if (LED_State==0) {	//Off=>On
@@ -227,7 +244,8 @@ int main(void)
 								"[a] Speed Up +1Hz\r\n"
 								"[s] Speed Down -1Hz\r\n"
 								"[d] On/off\r\n"
-								"[x] back\r\n",
+								"[x] back\r\n"
+								"\r\n",
 								LED_Frequency);
 							HAL_UART_Transmit(&huart2, (uint8_t*)temp, strlen(temp), 1000);
 						}
@@ -241,14 +259,31 @@ int main(void)
 							"MAIN MENU\r\n"
 							"====================\r\n"
 							"[0] LED Control\r\n"
-							"[1] Button Status\r\n";
+							"[1] Button Status\r\n"
+							"\r\n";
 
 						HAL_UART_Transmit(&huart2, (uint8_t*)temp, strlen(temp), 1000);
 						CurrentState = Menu_Main;
 					}
+					else if (ButtonState[0]==ButtonState[1]) {
+						char temp[] =
+							"> Error: Wrong button\r\n";
+						HAL_UART_Transmit(&huart2, (uint8_t*)temp, strlen(temp), 1000);
+					}
 
 					break;
 				case Menu_Mode1:						//Mode1 Button Status
+
+					if (ButtonState[0]==0 && inputchar==-1) {
+						char temp[] =
+							"> Button: Press\r\n";
+						HAL_UART_Transmit(&huart2, (uint8_t*)temp, strlen(temp), 1000);
+					}
+					else if (ButtonState[0]==1 && inputchar==-1) {
+						char temp[] =
+							"> Button: Release\r\n";
+						HAL_UART_Transmit(&huart2, (uint8_t*)temp, strlen(temp), 1000);
+					}
 
 					if (inputchar=='x') {
 						char temp[] =
@@ -256,10 +291,16 @@ int main(void)
 							"MAIN MENU\r\n"
 							"====================\r\n"
 							"[0] LED Control\r\n"
-							"[1] Button Status\r\n";
+							"[1] Button Status\r\n"
+							"\r\n";
 
 						HAL_UART_Transmit(&huart2, (uint8_t*)temp, strlen(temp), 1000);
 						CurrentState = Menu_Main;
+					}
+					else if (ButtonState[0]==ButtonState[1]) {
+						char temp[] =
+							"> Error: Wrong button\r\n";
+						HAL_UART_Transmit(&huart2, (uint8_t*)temp, strlen(temp), 1000);
 					}
 
 					break;
@@ -267,6 +308,7 @@ int main(void)
 					break;
 			}
 		}
+		ButtonState[1] = ButtonState[0];
 
 		if (LED_State && LED_Frequency!=0 && HAL_GetTick()-TimeStamp >= 500/LED_Frequency)
 		{
